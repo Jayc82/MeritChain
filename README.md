@@ -6,6 +6,8 @@ A human-first blockchain where **reputation replaces identity**, **work replaces
 
 MeritChain is a blockchain system designed for dignity and opportunity. It features:
 
+- **21 Million Coin Cap**: Fixed supply with halving mechanism ensures scarcity and long-term value
+- **Work-Based Emission**: 60% of block rewards go to validators, 30% to workers, 10% to peer reviewers
 - **Non-transferable Reputation**: Reputation points earned through completed jobs and honest participation cannot be sold or transferred, ensuring authentic contribution tracking
 - **Decentralized Job Contracts**: Job escrow system with peer review that enables trustless work agreements
 - **Income-Based Transaction Fees**: Fees scale with on-chain income to keep the network accessible to everyone, regardless of economic status
@@ -13,7 +15,23 @@ MeritChain is a blockchain system designed for dignity and opportunity. It featu
 
 ## Key Features
 
-### 1. Reputation System
+### 1. Tokenomics
+
+**Total Supply**: 21,000,000 coins (hard cap)
+
+**Genesis Allocation**:
+- 70% (14.7M) - Reserved for mining rewards (emitted over ~190 years)
+- 20% (4.2M) - Community bootstrap pool
+- 10% (2.1M) - Protocol reserve for development
+
+**Block Rewards**:
+- Initial: 50 coins per block
+- Halving: Every 210,000 blocks (~4 years)
+- Distribution: 60% validators, 30% workers, 10% reviewers
+
+**Emission Schedule**: Gradual release over 30-40 years with halving mechanism, ensuring sustained network security and worker incentives.
+
+### 2. Reputation System
 
 Reputation is earned through:
 - Completing jobs successfully
@@ -25,7 +43,7 @@ Reputation cannot be:
 - Sold or bought
 - Faked or manipulated
 
-### 2. Job Escrow System
+### 3. Job Escrow System
 
 Jobs flow through a secure lifecycle:
 1. **Created**: Poster creates job with payment locked in escrow
@@ -33,9 +51,9 @@ Jobs flow through a secure lifecycle:
 3. **In Progress**: Worker completes the work
 4. **Submitted**: Worker submits for review
 5. **Reviewed**: Peers review the work (1-5 stars, approve/dispute)
-6. **Completed**: Payment released, reputation awarded
+6. **Completed**: Payment released, reputation awarded, bonus from worker pool distributed
 
-### 3. Income-Based Fee Scaling
+### 4. Income-Based Fee Scaling
 
 Transaction fees are calculated based on the sender's on-chain income:
 - **Low income (0-100 units)**: Minimum fee (10 units)
@@ -44,7 +62,7 @@ Transaction fees are calculated based on the sender's on-chain income:
 
 Fees use logarithmic scaling to ensure slow growth with income, keeping the network usable for everyone.
 
-### 4. Reputation Discounts
+### 5. Reputation Discounts
 
 Users with higher reputation earn discounts on transaction fees (up to 50% off), incentivizing honest participation and quality work.
 
