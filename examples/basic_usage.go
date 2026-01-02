@@ -8,6 +8,8 @@ import (
 )
 
 // This example demonstrates basic usage of the MeritChain blockchain API
+// Note: This example uses the managers directly for demonstration purposes.
+// In production, all operations would go through blockchain transactions.
 func main() {
 	// Create a new blockchain
 	bc := blockchain.NewBlockchain()
@@ -18,68 +20,87 @@ func main() {
 	bc.CreateWallet("bob")
 	fmt.Println("✓ Wallets created for alice and bob")
 
-	// Alice creates a job
+	// Note: In a real blockchain, users would receive initial funds through mining or distribution
+	// For this demo, we use the managers directly to show the core functionality
 	fmt.Println("\n=== Creating a Job ===")
-	jobTx := blockchain.Transaction{
-		ID:   "tx-job-001",
-		Type: "job_create",
-		From: "alice",
-		Data: map[string]interface{}{
-			"job_id":            "job-001",
-			"title":             "Write documentation",
-			"description":       "Need technical documentation for API",
-			"payment":           float64(500),
-			"reputation_reward": float64(25),
-		},
+	fmt.Println("Note: Using JobManager directly for demonstration")
+	fmt.Println("In production, this would be done through blockchain transactions")
+	
+	jobManager := bc.GetJobManager()
+	job, err := jobManager.CreateJob("job-001", "alice", "Write documentation", "Need technical documentation for API", 500, 25, time.Now().Unix())
+	if err != nil {
+		fmt.Printf("Error creating job: %v\n", err)
+		return
 	}
-	bc.AddTransaction(jobTx)
-	bc.MineBlock()
-	fmt.Println("✓ Job created and mined")
-
-	// Get the job
-	job, _ := bc.GetJob("job-001")
-	fmt.Printf("Job: %s (Status: %s, Payment: %d, Reputation: %d)\n",
+	fmt.Printf("✓ Job created: %s (Status: %s, Payment: %d, Reputation: %d)\n",
 		job.Title, job.Status, job.Payment, job.ReputationReward)
 
 	// Bob accepts the job
 	fmt.Println("\n=== Job Acceptance ===")
-	jobManager := bc.GetJobManager()
-	jobManager.AcceptJob("job-001", "bob", time.Now().Unix())
-	jobManager.StartJob("job-001", "bob")
-	jobManager.SubmitJob("job-001", "bob")
-	fmt.Println("✓ Bob accepted and submitted the job")
+	err = jobManager.AcceptJob("job-001", "bob", time.Now().Unix())
+	if err != nil {
+		fmt.Printf("Error accepting job: %v\n", err)
+		return
+	}
+	err = jobManager.StartJob("job-001", "bob")
+	if err != nil {
+		fmt.Printf("Error starting job: %v\n", err)
+		return
+	}
+	err = jobManager.SubmitJob("job-001", "bob")
+	if err != nil {
+		fmt.Printf("Error submitting job: %v\n", err)
+		return
+	}
+	fmt.Println("✓ Bob accepted, started, and submitted the job")
 
 	// Add a review
 	fmt.Println("\n=== Peer Review ===")
-	jobManager.AddReview("job-001", "alice", 5, "Excellent documentation!", true, time.Now().Unix())
-	fmt.Println("✓ Review added")
+	err = jobManager.AddReview("job-001", "alice", 5, "Excellent documentation!", true, time.Now().Unix())
+	if err != nil {
+		fmt.Printf("Error adding review: %v\n", err)
+		return
+	}
+	fmt.Println("✓ Review added (5 stars, approved)")
 
 	// Complete the job
 	fmt.Println("\n=== Job Completion ===")
-	completeTx := blockchain.Transaction{
-		ID:   "tx-complete-001",
-		Type: "job_complete",
-		From: "alice",
-		To:   "bob",
-		Data: map[string]interface{}{
-			"job_id": "job-001",
-		},
+	err = jobManager.CompleteJob("job-001", time.Now().Unix())
+	if err != nil {
+		fmt.Printf("Error completing job: %v\n", err)
+		return
 	}
-	bc.AddTransaction(completeTx)
-	bc.MineBlock()
-	fmt.Println("✓ Job completed, payment released, reputation awarded")
+	fmt.Println("✓ Job completed, escrow released")
+
+	// Award reputation
+	repManager := bc.GetReputationManager()
+	err = repManager.AddReputation("bob", 25, "job_completed", "Completed job: Write documentation", "job-001", time.Now().Unix())
+	if err != nil {
+		fmt.Printf("Error adding reputation: %v\n", err)
+		return
+	}
+	fmt.Println("✓ Reputation awarded to bob")
 
 	// Check final state
 	fmt.Println("\n=== Final State ===")
-	fmt.Printf("Bob's balance: %d units\n", bc.GetBalance("bob"))
-
 	if rep, err := bc.GetReputation("bob"); err == nil {
 		fmt.Printf("Bob's reputation: %d points\n", rep.Points)
 		if len(rep.History) > 0 {
-			fmt.Println("\nReputation events:")
+			fmt.Println("\nReputation history:")
 			for _, event := range rep.History {
 				fmt.Printf("  - %s: %+d points (%s)\n", event.EventType, event.Points, event.Description)
 			}
+		}
+	}
+
+	// Get job details
+	completedJob, err := jobManager.GetJob("job-001")
+	if err == nil {
+		fmt.Printf("\nJob status: %s\n", completedJob.Status)
+		fmt.Printf("Reviews: %d review(s)\n", len(completedJob.Reviews))
+		if len(completedJob.Reviews) > 0 {
+			review := completedJob.Reviews[0]
+			fmt.Printf("  - Rating: %d/5 stars, Comment: \"%s\"\n", review.Rating, review.Comment)
 		}
 	}
 
@@ -94,17 +115,17 @@ func main() {
 	}{
 		{0, 0, "New user (no income/reputation)"},
 		{1000, 0, "User with 1000 units income"},
-		{1000, 50, "User with 1000 units income + 50 reputation"},
+		{1000, 25, "User with 1000 units income + 25 reputation (like bob)"},
 		{10000, 100, "User with 10000 units income + 100 reputation"},
 	}
 
 	for _, scenario := range scenarios {
 		if scenario.reputation > 0 {
 			fee, _ := feeCalc.CalculateFeeWithReputation(scenario.income, 1000, scenario.reputation)
-			fmt.Printf("%s:\n  Fee for 1000 unit transaction: %d units\n", scenario.label, fee)
+			fmt.Printf("%-50s: %d units\n", scenario.label, fee)
 		} else {
 			fee, _ := feeCalc.CalculateFee(scenario.income, 1000)
-			fmt.Printf("%s:\n  Fee for 1000 unit transaction: %d units\n", scenario.label, fee)
+			fmt.Printf("%-50s: %d units\n", scenario.label, fee)
 		}
 	}
 
@@ -112,8 +133,15 @@ func main() {
 	fmt.Println("\n=== Blockchain Validation ===")
 	if bc.IsValid() {
 		fmt.Println("✓ Blockchain is valid")
-		fmt.Printf("Chain length: %d blocks\n", len(bc.GetChain()))
+		fmt.Printf("Chain length: %d block(s)\n", len(bc.GetChain()))
 	}
 
 	fmt.Println("\n✓ Example complete!")
+	fmt.Println("\nKey Takeaways:")
+	fmt.Println("  • Reputation is earned through completed work (non-transferable)")
+	fmt.Println("  • Jobs use escrow to protect both parties")
+	fmt.Println("  • Peer reviews ensure quality")
+	fmt.Println("  • Transaction fees scale with income (more equitable access)")
+	fmt.Println("  • Reputation earns fee discounts (rewards honest participation)")
 }
+

@@ -152,24 +152,55 @@ func (bc *Blockchain) MineBlock() error {
 func (bc *Blockchain) processTransaction(tx Transaction) error {
 	switch tx.Type {
 	case "transfer":
+		// Validate balance before transfer
+		if bc.balances[tx.From] < (tx.Amount + tx.Fee) {
+			return errors.New("insufficient balance for transfer")
+		}
 		// Update balances
 		bc.balances[tx.From] -= (tx.Amount + tx.Fee)
 		bc.balances[tx.To] += tx.Amount
 
 	case "job_create":
-		// Create job
-		jobID := tx.Data["job_id"].(string)
-		title := tx.Data["title"].(string)
-		description := tx.Data["description"].(string)
-		payment := int64(tx.Data["payment"].(float64))
-		reputationReward := int64(tx.Data["reputation_reward"].(float64))
+		// Validate transaction data
+		jobID, ok := tx.Data["job_id"].(string)
+		if !ok {
+			return errors.New("invalid job_id")
+		}
+		title, ok := tx.Data["title"].(string)
+		if !ok {
+			return errors.New("invalid title")
+		}
+		description, ok := tx.Data["description"].(string)
+		if !ok {
+			return errors.New("invalid description")
+		}
+		paymentFloat, ok := tx.Data["payment"].(float64)
+		if !ok {
+			return errors.New("invalid payment")
+		}
+		payment := int64(paymentFloat)
+		
+		reputationRewardFloat, ok := tx.Data["reputation_reward"].(float64)
+		if !ok {
+			return errors.New("invalid reputation_reward")
+		}
+		reputationReward := int64(reputationRewardFloat)
+
+		// Validate balance before locking in escrow
+		if bc.balances[tx.From] < payment {
+			return errors.New("insufficient balance for job creation")
+		}
 
 		bc.jobManager.CreateJob(jobID, tx.From, title, description, payment, reputationReward, tx.Timestamp)
 		bc.balances[tx.From] -= payment // Lock in escrow
 
 	case "job_complete":
-		// Complete job and award reputation
-		jobID := tx.Data["job_id"].(string)
+		// Validate transaction data
+		jobID, ok := tx.Data["job_id"].(string)
+		if !ok {
+			return errors.New("invalid job_id")
+		}
+		
 		job, err := bc.jobManager.GetJob(jobID)
 		if err == nil {
 			bc.jobManager.CompleteJob(jobID, tx.Timestamp)
@@ -187,11 +218,25 @@ func (bc *Blockchain) processTransaction(tx Transaction) error {
 		}
 
 	case "reputation_update":
-		// Manual reputation update (e.g., from peer review)
-		address := tx.Data["address"].(string)
-		points := int64(tx.Data["points"].(float64))
-		eventType := tx.Data["event_type"].(string)
-		description := tx.Data["description"].(string)
+		// Validate transaction data
+		address, ok := tx.Data["address"].(string)
+		if !ok {
+			return errors.New("invalid address")
+		}
+		pointsFloat, ok := tx.Data["points"].(float64)
+		if !ok {
+			return errors.New("invalid points")
+		}
+		points := int64(pointsFloat)
+		
+		eventType, ok := tx.Data["event_type"].(string)
+		if !ok {
+			return errors.New("invalid event_type")
+		}
+		description, ok := tx.Data["description"].(string)
+		if !ok {
+			return errors.New("invalid description")
+		}
 
 		if points > 0 {
 			bc.reputationManager.AddReputation(address, points, eventType, description, tx.ID, tx.Timestamp)

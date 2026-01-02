@@ -67,6 +67,8 @@ func (fc *FeeCalculator) CalculateFee(onChainIncome int64, transactionValue int6
 
 // CalculateFeeWithReputation calculates fee with reputation discount
 // Higher reputation = lower fees (as a reward for honest participation)
+// Formula: discount = min(reputation / 10000, 0.5)
+// This provides up to 50% discount at 5000+ reputation points
 func (fc *FeeCalculator) CalculateFeeWithReputation(onChainIncome int64, transactionValue int64, reputation int64) (int64, error) {
 	baseFee, err := fc.CalculateFee(onChainIncome, transactionValue)
 	if err != nil {
