@@ -15,6 +15,14 @@ import (
 	"github.com/Jayc82/MeritChain/pkg/tokenomics"
 )
 
+const (
+	// WorkerBonusPercent is the percentage of job payment awarded as bonus from worker pool
+	WorkerBonusPercent = 10 // 10% bonus
+	
+	// ReviewerRewardDivisor is used to calculate reviewer rewards (payment / divisor / num_reviewers)
+	ReviewerRewardDivisor = 20
+)
+
 // Transaction represents a transaction on the blockchain
 type Transaction struct {
 	ID          string
@@ -238,14 +246,14 @@ func (bc *Blockchain) processTransaction(tx Transaction) error {
 
 			// Award worker from the worker reward pool
 			// Small bonus from the pool for completing work
-			workerBonus := job.Payment / 10 // 10% bonus from pool
+			workerBonus := job.Payment / WorkerBonusPercent
 			if bc.tokenomics.ClaimWorkerReward(workerBonus) == nil {
 				bc.balances[job.Worker] += workerBonus
 			}
 
 			// Award reviewers from the reviewer pool
 			if len(job.Reviews) > 0 {
-				reviewerReward := job.Payment / (20 * int64(len(job.Reviews))) // Small reward per reviewer
+				reviewerReward := job.Payment / (ReviewerRewardDivisor * int64(len(job.Reviews)))
 				for _, review := range job.Reviews {
 					if bc.tokenomics.ClaimReviewerReward(reviewerReward) == nil {
 						bc.balances[review.Reviewer] += reviewerReward

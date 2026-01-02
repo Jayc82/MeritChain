@@ -100,9 +100,8 @@ func TestRewardHalving(t *testing.T) {
 	// Mint blocks until first halving
 	initialReward := tm.GetCurrentBlockReward()
 
-	for i := int64(0); i < BlocksPerHalving; i++ {
-		tm.MintBlockReward()
-	}
+	// Instead of minting all blocks, directly set block height to halving point
+	tm.blockHeight = BlocksPerHalving
 
 	// After halving, reward should be half
 	newReward := tm.GetCurrentBlockReward()

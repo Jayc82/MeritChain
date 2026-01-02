@@ -36,16 +36,14 @@ type TokenomicsManager struct {
 	workerRewardPool      int64 // Accumulated rewards for workers
 	reviewerRewardPool    int64 // Accumulated rewards for reviewers
 	blockHeight           int64 // Current block height
-	emissionSchedule      map[int64]int64 // Block height -> reward amount
 }
 
 // NewTokenomicsManager creates a new tokenomics manager with genesis allocation
 func NewTokenomicsManager() *TokenomicsManager {
 	tm := &TokenomicsManager{
-		totalEmitted:     0,
-		totalSupplyCap:   TotalSupplyCap,
-		blockHeight:      0,
-		emissionSchedule: make(map[int64]int64),
+		totalEmitted:   0,
+		totalSupplyCap: TotalSupplyCap,
+		blockHeight:    0,
 	}
 
 	// Calculate genesis allocations
