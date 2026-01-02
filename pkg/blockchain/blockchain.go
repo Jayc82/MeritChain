@@ -12,6 +12,7 @@ import (
 	"github.com/Jayc82/MeritChain/pkg/fee"
 	"github.com/Jayc82/MeritChain/pkg/job"
 	"github.com/Jayc82/MeritChain/pkg/reputation"
+	"github.com/Jayc82/MeritChain/pkg/tokenomics"
 )
 
 // Transaction represents a transaction on the blockchain
@@ -45,10 +46,12 @@ type Blockchain struct {
 	reputationManager *reputation.ReputationManager
 	jobManager        *job.JobManager
 	feeCalculator     *fee.FeeCalculator
+	tokenomics        *tokenomics.TokenomicsManager
 	balances          map[string]int64 // Address -> balance for tracking on-chain income
+	validatorAddress  string            // Address that receives validator rewards
 }
 
-// NewBlockchain creates a new blockchain with genesis block
+// NewBlockchain creates a new blockchain with genesis block and tokenomics
 func NewBlockchain() *Blockchain {
 	bc := &Blockchain{
 		chain:             []Block{},
@@ -56,8 +59,13 @@ func NewBlockchain() *Blockchain {
 		reputationManager: reputation.NewReputationManager(),
 		jobManager:        job.NewJobManager(),
 		feeCalculator:     fee.NewFeeCalculator(),
+		tokenomics:        tokenomics.NewTokenomicsManager(),
 		balances:          make(map[string]int64),
+		validatorAddress:  "validator", // Default validator address
 	}
+
+	// Create validator wallet
+	bc.balances["validator"] = 0
 
 	// Create genesis block
 	genesisBlock := Block{
@@ -117,7 +125,7 @@ func (bc *Blockchain) AddTransaction(tx Transaction) error {
 	return nil
 }
 
-// MineBlock creates a new block with pending transactions
+// MineBlock creates a new block with pending transactions and distributes mining rewards
 func (bc *Blockchain) MineBlock() error {
 	bc.mu.Lock()
 	defer bc.mu.Unlock()
@@ -140,6 +148,18 @@ func (bc *Blockchain) MineBlock() error {
 	// Process transactions
 	for _, tx := range newBlock.Transactions {
 		bc.processTransaction(tx)
+	}
+
+	// Mint block rewards according to tokenomics
+	validatorReward, _, _, err := bc.tokenomics.MintBlockReward()
+	if err != nil {
+		// If we hit the supply cap, that's ok, just log it
+		// Continue mining without rewards
+	} else {
+		// Award validator reward
+		bc.balances[bc.validatorAddress] += validatorReward
+		// Worker and reviewer rewards are held in their respective pools
+		// They will be distributed when jobs are completed and reviews are done
 	}
 
 	bc.chain = append(bc.chain, newBlock)
@@ -215,6 +235,23 @@ func (bc *Blockchain) processTransaction(tx Transaction) error {
 				jobID,
 				tx.Timestamp,
 			)
+
+			// Award worker from the worker reward pool
+			// Small bonus from the pool for completing work
+			workerBonus := job.Payment / 10 // 10% bonus from pool
+			if bc.tokenomics.ClaimWorkerReward(workerBonus) == nil {
+				bc.balances[job.Worker] += workerBonus
+			}
+
+			// Award reviewers from the reviewer pool
+			if len(job.Reviews) > 0 {
+				reviewerReward := job.Payment / (20 * int64(len(job.Reviews))) // Small reward per reviewer
+				for _, review := range job.Reviews {
+					if bc.tokenomics.ClaimReviewerReward(reviewerReward) == nil {
+						bc.balances[review.Reviewer] += reviewerReward
+					}
+				}
+			}
 		}
 
 	case "reputation_update":
@@ -326,4 +363,47 @@ func (bc *Blockchain) GetJobManager() *job.JobManager {
 // GetFeeCalculator returns the fee calculator
 func (bc *Blockchain) GetFeeCalculator() *fee.FeeCalculator {
 	return bc.feeCalculator
+}
+
+// GetTokenomics returns the tokenomics manager
+func (bc *Blockchain) GetTokenomics() *tokenomics.TokenomicsManager {
+	return bc.tokenomics
+}
+
+// DistributeCommunityFunds distributes coins from the community bootstrap pool
+func (bc *Blockchain) DistributeCommunityFunds(address string, amount int64) error {
+	bc.mu.Lock()
+	defer bc.mu.Unlock()
+
+	err := bc.tokenomics.AllocateCommunityFunds(amount)
+	if err != nil {
+		return err
+	}
+
+	bc.balances[address] += amount
+	return nil
+}
+
+// DistributeProtocolFunds distributes coins from the protocol reserve
+func (bc *Blockchain) DistributeProtocolFunds(address string, amount int64) error {
+	bc.mu.Lock()
+	defer bc.mu.Unlock()
+
+	err := bc.tokenomics.AllocateProtocolFunds(amount)
+	if err != nil {
+		return err
+	}
+
+	bc.balances[address] += amount
+	return nil
+}
+
+// GetTotalSupply returns the total supply cap
+func (bc *Blockchain) GetTotalSupply() int64 {
+	return tokenomics.TotalSupplyCap
+}
+
+// GetCirculatingSupply returns the circulating supply
+func (bc *Blockchain) GetCirculatingSupply() int64 {
+	return bc.tokenomics.GetCirculatingSupply()
 }

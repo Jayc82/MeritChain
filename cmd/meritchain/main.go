@@ -265,8 +265,28 @@ func runDemo(bc *blockchain.Blockchain) {
 		fmt.Printf("  Income: %6d -> Fee: %4d units (with reputation discount)\n", income, fee)
 	}
 
+	// Show tokenomics stats
+	fmt.Println("\n=== Tokenomics Stats ===")
+	stats := bc.GetTokenomics().GetStats()
+	fmt.Printf("Total Supply Cap: %d coins\n", stats.TotalSupplyCap)
+	fmt.Printf("Emitted through Mining: %d coins (%.2f%% of genesis reserve)\n", stats.TotalMinted, stats.PercentMinted)
+	fmt.Printf("Circulating Supply: %d coins\n", stats.CirculatingSupply)
+	fmt.Printf("Current Block Height: %d\n", stats.CurrentBlockHeight)
+	fmt.Printf("Current Block Reward: %d coins\n", stats.CurrentBlockReward)
+	fmt.Printf("Next Halving at Block: %d\n", stats.NextHalvingBlock)
+	fmt.Printf("\nGenesis Allocations:\n")
+	fmt.Printf("  Reserve (locked for mining): %d coins (70%%)\n", stats.GenesisReserve)
+	fmt.Printf("  Community Pool: %d coins (20%%)\n", stats.CommunityPool)
+	fmt.Printf("  Protocol Reserve: %d coins (10%%)\n", stats.ProtocolReserve)
+	fmt.Printf("\nReward Pools:\n")
+	fmt.Printf("  Worker Reward Pool: %d coins\n", stats.WorkerRewardPool)
+	fmt.Printf("  Reviewer Reward Pool: %d coins\n", stats.ReviewerRewardPool)
+
 	fmt.Println("\n✓ Demo completed!")
 	fmt.Println("\nKey Features Demonstrated:")
+	fmt.Println("  • 21 million coin hard cap with halving mechanism")
+	fmt.Println("  • Genesis allocation: 70% mining reserve, 20% community, 10% protocol")
+	fmt.Println("  • Block rewards split: 60% validators, 30% workers, 10% reviewers")
 	fmt.Println("  • Non-transferable reputation earned through work")
 	fmt.Println("  • Job escrow with peer review")
 	fmt.Println("  • Income-based fee scaling (lower income = lower fees)")
